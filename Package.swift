@@ -17,6 +17,10 @@ let package = Package(
             name: "LibNFCSwift",
             dependencies: [
                 .byName(name: "Clibnfc")
+            ],
+            linkerSettings: [
+                //  Required on Linux?
+                .linkedLibrary("nfc")
             ]
         ),
         .systemLibrary(
