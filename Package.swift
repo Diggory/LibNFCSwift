@@ -16,7 +16,7 @@ let package = Package(
         .target(
             name: "LibNFCSwift",
             dependencies: [
-                .byName(name: "Clibnfc"),
+                .byName(name: "Clibnfc")
             ],
         ),
         .systemLibrary(
