@@ -10,8 +10,7 @@ let package = Package(
         .library(
             name: "LibNFCSwift",
             targets: ["LibNFCSwift"]
-        ),
-        
+        )        
     ],
     targets: [
         .target(
