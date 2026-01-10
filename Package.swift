@@ -24,7 +24,7 @@ let package = Package(
             pkgConfig: "libnfc",
             providers: [
                 .brew(["libnfc"]),
-                .apt(["libnfc"])
+                .apt(["libnfc-dev"])
             ]
         )
     ]
