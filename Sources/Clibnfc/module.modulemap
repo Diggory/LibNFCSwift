@@ -1,0 +1,14 @@
+module Clibnfc [system] {
+
+    //  Relative paths don't work
+//    umbrella "nfc"
+//    header "nfc/nfc.h"
+
+//    header "/opt/homebrew/include/nfc/nfc.h"
+    umbrella "/opt/homebrew/include/nfc"
+
+    link "libnfc"
+    export *
+}
+
+

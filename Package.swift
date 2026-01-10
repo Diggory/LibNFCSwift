@@ -4,20 +4,38 @@
 import PackageDescription
 
 let package = Package(
-    name: "LIbNFCSwift",
+    name: "LibNFCSwift",
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "LIbNFCSwift",
-            targets: ["LIbNFCSwift"]
+            name: "LibNFCSwift",
+            targets: ["LibNFCSwift"]
         ),
+        
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "LIbNFCSwift"
-        ),
+            name: "LibNFCSwift",
+            dependencies: [
+                .byName(name: "Clibnfc"),
+            ],
+//            swiftSettings: [
+//                .unsafeFlags(["-I/opt/homebrew/include"], .when(platforms: [.macOS]))
+//            ],
+//            linkerSettings: [
+//                .unsafeFlags(["-Xlinker", "-L/opt/homebrew/lib"], .when(platforms: [.macOS])),
+//            ]
 
+        ),
+        .systemLibrary(
+            name: "Clibnfc",
+            pkgConfig: "libnfc",
+            providers: [
+                .brew(["libnfc"]),
+                .apt(["libnfc"])
+            ]
+        )
     ]
 )
