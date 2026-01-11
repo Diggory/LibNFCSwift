@@ -199,6 +199,12 @@ public class NFC {
         print("Poll result: \(res)")
         print("target: \(nt)")
 
+        print("target_modulation: \(nt.nm)")
+        print("target_modulation type: \(nt.nm.nmt)")
+        print("target_modulation baud rate: \(nt.nm.nbr)")
+
+        print("target_info: \(nt.nti)")
+
 
 
     }
