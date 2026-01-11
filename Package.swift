@@ -13,18 +13,24 @@ let package = Package(
         )        
     ],
     targets: [
-        .target(
-            name: "LibNFCSwift",
-            dependencies: [
-                .byName(name: "Clibnfc")
-            ]
-        ),
         .systemLibrary(
             name: "Clibnfc",
             pkgConfig: "libnfc",
             providers: [
                 .brew(["libnfc"]),
                 .apt(["libnfc-dev"])
+            ]
+        ),
+        .target(
+            name: "LibNFCSwift",
+            dependencies: [
+                .byName(name: "Clibnfc")
+            ]
+        ),
+        .executableTarget(
+            name: "TestUseOfLibNFCSwift",
+            dependencies: [
+                .byName(name: "LibNFCSwift")
             ]
         )
     ]
