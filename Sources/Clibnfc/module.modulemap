@@ -1,6 +1,6 @@
 module Clibnfc [system] {
     header "shim.h"
-    link "libnfc"
+    link "nfc"
     export *
 }
 
