@@ -139,4 +139,68 @@ public class NFC {
         return .success(openedDevice)
     }
 
+
+    /*
+
+     printf("NFC device will poll during %ld ms (%u pollings of %lu ms for %" PRIdPTR " modulations)\n", (unsigned long) uiPollNr * szModulations * uiPeriod * 150, uiPollNr, (unsigned long) uiPeriod * 150, szModulations);
+     if ((res = nfc_initiator_poll_target(pnd, nmModulations, szModulations, uiPollNr, uiPeriod, &nt))  < 0) {
+       nfc_perror(pnd, "nfc_initiator_poll_target");
+       nfc_close(pnd);
+       nfc_exit(context);
+       exit(EXIT_FAILURE);
+     }
+
+     if (res > 0) {
+       print_nfc_target(&nt, verbose);
+       printf("Waiting for card removing...");
+       fflush(stdout);
+       while (0 == nfc_initiator_target_is_present(pnd, NULL)) {}
+       nfc_perror(pnd, "nfc_initiator_target_is_present");
+       printf("done.\n");
+     } else {
+       printf("No target found.\n");
+     }
+
+     nfc_close(pnd);
+
+     */
+
+
+    public func basicPollTest(device: NFC.Device) {
+
+        let modulations = [
+            nfc_modulation(nmt: NMT_ISO14443A, nbr: NBR_106),
+            nfc_modulation(nmt: NMT_ISO14443B, nbr: NBR_106),
+            nfc_modulation(nmt: NMT_FELICA, nbr: NBR_212),
+            nfc_modulation(nmt: NMT_FELICA, nbr: NBR_424),
+            nfc_modulation(nmt: NMT_JEWEL, nbr: NBR_106),
+            nfc_modulation(nmt: NMT_ISO14443BICLASS, nbr: NBR_106),
+        ]
+
+        let uiPollNr = 20
+        let uiPeriod = 2
+        let szModulations = 6
+
+        var nt: nfc_target = nfc_target()
+
+        print("NFC device will poll during \(uiPollNr * szModulations * uiPeriod * 150) ms (\(uiPollNr) pollings of \(uiPeriod * 150) ms for \(szModulations) modulations)")
+
+//        nfc_initiator_poll_target()
+        let res = Int(nfc_initiator_poll_target(device.nfcDevice, modulations, szModulations, UInt8(uiPollNr), UInt8(uiPeriod), &nt))
+
+        if res < 0 {
+            if let error = NFCError(rawValue: res) {
+                print("Error polling: \(error)")
+            } else {
+                print("Unknown error polling…")
+            }
+            return
+        }
+        print("Poll result: \(res)")
+        print("target: \(nt)")
+
+
+
+    }
+
 }
