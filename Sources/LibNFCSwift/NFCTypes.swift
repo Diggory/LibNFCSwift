@@ -5,7 +5,7 @@
 //  Created by Diggory Laycock on 11/01/2026.
 //
 
-//import Foundation
+import Foundation
 import Clibnfc
 
 // MARK: - Baud Rate
@@ -282,4 +282,255 @@ extension Modulation {
     static let felica212 = Modulation(type: .felica, baudRate: .baud212)
     static let felica424 = Modulation(type: .felica, baudRate: .baud424)
     static let iso14443b106 = Modulation(type: .iso14443b, baudRate: .baud106)
+}
+
+
+
+// MARK: - ISO14443A Info
+
+/// Swift wrapper for NFC ISO14443A tag (MIFARE) information
+struct ISO14443AInfo {
+    /// ATQA (Answer To reQuest type A) - 2 bytes
+    let atqa: (UInt8, UInt8)
+
+    /// SAK (Select AcKnowledge)
+    let sak: UInt8
+
+    /// UID (Unique Identifier) - variable length up to 10 bytes
+    let uid: Data
+
+    /// ATS (Answer To Select) - variable length up to 254 bytes
+    let ats: Data
+
+    init(atqa: (UInt8, UInt8), sak: UInt8, uid: Data, ats: Data = Data()) {
+        self.atqa = atqa
+        self.sak = sak
+        self.uid = uid.prefix(10) // Ensure max 10 bytes
+        self.ats = ats.prefix(254) // Ensure max 254 bytes
+    }
+
+    init(_ cInfo: nfc_iso14443a_info) {
+        self.atqa = (cInfo.abtAtqa.0, cInfo.abtAtqa.1)
+        self.sak = cInfo.btSak
+
+        // Convert UID from fixed array to Data
+        let uidBytes = withUnsafeBytes(of: cInfo.abtUid) { buffer in
+            Array(buffer.prefix(Int(cInfo.szUidLen)))
+        }
+        self.uid = Data(uidBytes)
+
+        // Convert ATS from fixed array to Data
+        let atsBytes = withUnsafeBytes(of: cInfo.abtAts) { buffer in
+            Array(buffer.prefix(Int(cInfo.szAtsLen)))
+        }
+        self.ats = Data(atsBytes)
+    }
+
+    var cValue: nfc_iso14443a_info {
+        var info = nfc_iso14443a_info()
+
+        // Set ATQA
+        info.abtAtqa.0 = atqa.0
+        info.abtAtqa.1 = atqa.1
+
+        // Set SAK
+        info.btSak = sak
+
+        // Set UID
+        info.szUidLen = min(uid.count, 10)
+        uid.withUnsafeBytes { buffer in
+            let bound = min(buffer.count, 10)
+            withUnsafeMutableBytes(of: &info.abtUid) { dest in
+                dest.copyBytes(from: buffer.prefix(bound))
+            }
+        }
+
+        // Set ATS
+        info.szAtsLen = min(ats.count, 254)
+        ats.withUnsafeBytes { buffer in
+            let bound = min(buffer.count, 254)
+            withUnsafeMutableBytes(of: &info.abtAts) { dest in
+                dest.copyBytes(from: buffer.prefix(bound))
+            }
+        }
+
+        return info
+    }
+}
+
+// MARK: - Computed Properties
+
+extension ISO14443AInfo {
+    /// UID length in bytes
+    var uidLength: Int {
+        return uid.count
+    }
+
+    /// ATS length in bytes
+    var atsLength: Int {
+        return ats.count
+    }
+
+    /// UID type based on length
+    var uidType: UIDType {
+        switch uid.count {
+        case 4: return .single
+        case 7: return .double
+        case 10: return .triple
+        default: return .unknown
+        }
+    }
+
+    /// Check if ATS is present
+    var hasATS: Bool {
+        return !ats.isEmpty
+    }
+
+    /// ATQA as a 16-bit value (big-endian)
+    var atqaValue: UInt16 {
+        return (UInt16(atqa.0) << 8) | UInt16(atqa.1)
+    }
+}
+
+// MARK: - UID Type
+
+extension ISO14443AInfo {
+    enum UIDType {
+        case single   // 4 bytes
+        case double   // 7 bytes
+        case triple   // 10 bytes
+        case unknown
+
+        var description: String {
+            switch self {
+            case .single: return "Single (4 bytes)"
+            case .double: return "Double (7 bytes)"
+            case .triple: return "Triple (10 bytes)"
+            case .unknown: return "Unknown"
+            }
+        }
+    }
+}
+
+// MARK: - Card Type Detection
+
+extension ISO14443AInfo {
+    /// Detected card type based on SAK value
+    var cardType: CardType {
+        switch sak {
+        case 0x00: return .mifareUltralight
+        case 0x08: return .mifareClassic1K
+        case 0x09: return .mifareClassicMini
+        case 0x18: return .mifareClassic4K
+        case 0x20: return .mifareDesfire
+        case 0x28: return .jcopCard
+        case 0x88: return .infineonCard
+        default: return .unknown(sak: sak)
+        }
+    }
+
+    enum CardType {
+        case mifareUltralight
+        case mifareClassic1K
+        case mifareClassic4K
+        case mifareClassicMini
+        case mifareDesfire
+        case jcopCard
+        case infineonCard
+        case unknown(sak: UInt8)
+
+        var description: String {
+            switch self {
+            case .mifareUltralight: return "MIFARE Ultralight"
+            case .mifareClassic1K: return "MIFARE Classic 1K"
+            case .mifareClassic4K: return "MIFARE Classic 4K"
+            case .mifareClassicMini: return "MIFARE Classic Mini"
+            case .mifareDesfire: return "MIFARE DESFire"
+            case .jcopCard: return "JCOP Card"
+            case .infineonCard: return "Infineon Card"
+            case .unknown(let sak): return "Unknown (SAK: 0x\(String(sak, radix: 16, uppercase: true)))"
+            }
+        }
+    }
+}
+
+// MARK: - String Formatting
+
+extension ISO14443AInfo: CustomStringConvertible {
+    var description: String {
+        return """
+        ISO14443A Info:
+          ATQA: \(atqaHex)
+          SAK: \(sakHex)
+          UID: \(uidHex) (\(uidType.description))
+          Card Type: \(cardType.description)
+          ATS: \(atsHex)\(hasATS ? "" : " (none)")
+        """
+    }
+
+    var atqaHex: String {
+        return String(format: "%02X %02X", atqa.0, atqa.1)
+    }
+
+    var sakHex: String {
+        return String(format: "0x%02X", sak)
+    }
+
+    var uidHex: String {
+        return uid.map { String(format: "%02X", $0) }.joined(separator: " ")
+    }
+
+    var atsHex: String {
+        guard !ats.isEmpty else { return "" }
+        return ats.map { String(format: "%02X", $0) }.joined(separator: " ")
+    }
+}
+
+// MARK: - Convenience Initializers
+
+extension ISO14443AInfo {
+    /// Create from hex string (for testing/debugging)
+    static func fromUIDHex(_ hexString: String) -> ISO14443AInfo? {
+        let hex = hexString.replacingOccurrences(of: " ", with: "")
+        guard hex.count % 2 == 0 else { return nil }
+
+        var data = Data()
+        var index = hex.startIndex
+        while index < hex.endIndex {
+            let nextIndex = hex.index(index, offsetBy: 2)
+            if let byte = UInt8(hex[index..<nextIndex], radix: 16) {
+                data.append(byte)
+            } else {
+                return nil
+            }
+            index = nextIndex
+        }
+
+        return ISO14443AInfo(
+            atqa: (0x00, 0x00),
+            sak: 0x00,
+            uid: data
+        )
+    }
+}
+
+// MARK: - Equatable & Hashable
+
+extension ISO14443AInfo: Equatable {
+    static func == (lhs: ISO14443AInfo, rhs: ISO14443AInfo) -> Bool {
+        return lhs.atqa == rhs.atqa &&
+               lhs.sak == rhs.sak &&
+               lhs.uid == rhs.uid &&
+               lhs.ats == rhs.ats
+    }
+}
+
+extension ISO14443AInfo: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(atqa.0)
+        hasher.combine(atqa.1)
+        hasher.combine(sak)
+        hasher.combine(uid)
+        hasher.combine(ats)
+    }
 }
