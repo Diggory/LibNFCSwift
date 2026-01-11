@@ -9,6 +9,18 @@ public class NFC {
         ///  an NFC hardware device that we connect to.
         let nfcDevice: OpaquePointer?
 
+        /// Internal name storage, not for public use.
+        var _name: String?
+
+        /// Name of NFC hardware, from the device itself.
+        public var name: String {
+            if _name != nil {
+                return _name!
+            }
+            _name = self.nfcDeviceName() ?? "Name not available"
+            return _name!
+        }
+
         public init(nfc: NFC, nfcDevice: OpaquePointer) {
             self.nfc = nfc
             self.nfcDevice = nfcDevice
@@ -18,12 +30,13 @@ public class NFC {
         deinit {
             if nfcDevice != nil {
                 //  Close the device
+                print("closing nfcDevice in its own deinit() method")
                 nfc_close(nfcDevice)
             }
         }
 
-        /// Name of the NFC hardware device
-        public func name() -> String? {
+        /// Name of the NFC hardware device, gathered from libnfc
+        func nfcDeviceName() -> String? {
             guard let nfcDevice else {
                 print("nfc_device_get_name() called before nfc_open()")
                 return nil
@@ -41,6 +54,7 @@ public class NFC {
         public func close() {
             //  call back to NFC context to close the device.
             //  FIXME: Device is not removed from the NFC.devices array…
+            print("NFC.Device.close()")
             nfc_close(nfcDevice)
         }
 
@@ -58,10 +72,13 @@ public class NFC {
     var nfcContext: OpaquePointer?
     public var devices: [Device] = []
 
-    public init() {}
+    public init() {
+        nfcInit()
+    }
 
     /// Clean-up
     deinit {
+        print("NFC.deinit()")
         //  Close all the devices
         for device in devices {
             device.close()
@@ -69,10 +86,26 @@ public class NFC {
 
         if nfcContext != nil {
             //  clean-up / release the context
+            print("nfc_exit()")
             nfc_exit(nfcContext!)
             nfcContext = nil
         }
     }
+
+    //MARK: - libnfc function wrappers
+
+    /// Startup the NFC instance
+    func nfcInit() {
+        guard nfcContext == nil else {
+            print("attempt to nfc_init(), but it has already been initialized")
+            return
+        }
+        nfc_init(&nfcContext)
+        if nfcContext == nil {
+            print("nfc_init() returned nil")
+        }
+    }
+
 
     /// The libNFC version as a string
     public func libNFCVersion() -> String? {
@@ -85,17 +118,6 @@ public class NFC {
         }
     }
 
-    /// Startup the NFC instance
-    public func nfcInit() {
-        guard nfcContext == nil else {
-            print("attempt to nfc_init(), but it has already been initialized")
-            return
-        }
-        nfc_init(&nfcContext)
-        if nfcContext == nil {
-            print("nfc_init() returned nil")
-        }
-    }
 
     /// Open connection to the NFC hardware
     public func nfcOpen() -> Result<NFC.Device, NFCError.Open> {
