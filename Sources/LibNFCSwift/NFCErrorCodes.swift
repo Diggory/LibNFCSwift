@@ -41,4 +41,17 @@ public enum NFCError: Int, Error, CustomStringConvertible {
         case .chip: return "Device's internal chip error"
         }
     }
+
+    public enum Open: Error, CustomStringConvertible {
+        case nfcNotInitialised
+        case couldNotOpenDevice
+
+        public var description: String {
+            switch self {
+            case .nfcNotInitialised: return "nfc_open() called before nfc_init()"
+            case .couldNotOpenDevice: return "Could not open NFC device…"
+            }
+        }
+    }
+
 }
