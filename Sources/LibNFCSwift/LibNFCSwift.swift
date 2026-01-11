@@ -80,12 +80,11 @@ public class NFC {
     }
 
     /// Start in initiator mode
-    public func nfcInitiator() -> Bool {
+    public func nfcInitiator() throws(NFCError) {
         let error = NFCError(rawValue: Int(nfc_initiator_init(nfcDevice)))
         guard error == .success else {
             print("Error starting in initiator mode: \(error!)")
-            return false
+            throw error!
         }
-        return true
     }
 }
