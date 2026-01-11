@@ -62,8 +62,6 @@ public class NFC {
             print("was not able to open the nfc device")
             return
         }
-
-
     }
 
     /// Name of the NFC hardware device
@@ -79,5 +77,15 @@ public class NFC {
         //        return "Device name goes here!"
         let swiftName = String(cString: name)
         return swiftName
+    }
+
+    /// Start in initiator mode
+    public func nfcInitiator() -> Bool {
+        let error = NFCError(rawValue: Int(nfc_initiator_init(nfcDevice)))
+        guard error == .success else {
+            print("Error starting in initiator mode: \(error!)")
+            return false
+        }
+        return true
     }
 }
