@@ -179,14 +179,12 @@ public class NFC {
 
         let uiPollNr = 20
         let uiPeriod = 2
-        let szModulations = 6
 
-        var nt: nfc_target = nfc_target()
+        var nfcTarget: nfc_target = nfc_target()
 
-        print("NFC device will poll during \(uiPollNr * szModulations * uiPeriod * 150) ms (\(uiPollNr) pollings of \(uiPeriod * 150) ms for \(szModulations) modulations)")
+        print("NFC device will poll during \(uiPollNr * modulations.count * uiPeriod * 150) ms (\(uiPollNr) pollings of \(uiPeriod * 150) ms for \(modulations.count) modulations)")
 
-//        nfc_initiator_poll_target()
-        let res = Int(nfc_initiator_poll_target(device.nfcDevice, modulations, szModulations, UInt8(uiPollNr), UInt8(uiPeriod), &nt))
+        let res = Int(nfc_initiator_poll_target(device.nfcDevice, modulations, modulations.count, UInt8(uiPollNr), UInt8(uiPeriod), &nfcTarget))
 
         if res < 0 {
             if let error = NFCError(rawValue: res) {
@@ -197,15 +195,16 @@ public class NFC {
             return
         }
         print("Poll result: \(res)")
-        print("target: \(nt)")
+        print("target: \(nfcTarget)")
 
-        print("target_modulation: \(nt.nm)")
-        print("target_modulation type: \(nt.nm.nmt)")
-        print("target_modulation baud rate: \(nt.nm.nbr)")
+        print("target_modulation: \(nfcTarget.nm)")
+        print("target_modulation type: \(nfcTarget.nm.nmt)")
+        print("target_modulation baud rate: \(nfcTarget.nm.nbr)")
 
-        print("target_info: \(nt.nti)")
+        print("target_info: \(nfcTarget.nti)")
 
-
+        let target = NFCTarget(nfcTarget)
+        print("swift target: \(target)")
 
     }
 
